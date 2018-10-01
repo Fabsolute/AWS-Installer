@@ -1,0 +1,89 @@
+#!/usr/bin/env robo
+<?php
+define('MY_PHP_VERSION', '7.2');
+
+/**
+ * This is project's console commands configuration for Robo task runner.
+ *
+ * @see http://robo.li/
+ */
+class RoboFile extends \Robo\Tasks
+{
+    use Robo\Task\Base\loadShortcuts;
+
+    #region PHP
+
+    /**
+     * mb_string eklentisini kurar
+     */
+    public function phpInstallMB()
+    {
+        $this->phpInstallExtension("mbstring");
+    }
+
+    public function phpInstallMysql()
+    {
+        $this->phpInstallExtension('mysql');
+    }
+
+    public function phpRestart()
+    {
+        $this->say("fpm restartlaniyor");
+        $restart_response = $this->_exec('service php' . MY_PHP_VERSION . '-fpm restart');
+        if ($restart_response->wasSuccessful()) {
+            $this->say("restart basarili");
+            return true;
+        }
+
+        $this->say("restart basarisiz!");
+        return false;
+    }
+
+    /**
+     * @param bool $was_successful
+     */
+    private function phpAfterExtensionInitialized($was_successful)
+    {
+        if ($was_successful) {
+            $this->say("Kurulum basariyla tamamlandi.");
+            $this->phpRestart();
+        } else {
+            $this->say("Kurulum tamamlanamadi!");
+        }
+    }
+
+    private function phpInstallExtension($extension_name)
+    {
+        $full_extension_name = 'php' . MY_PHP_VERSION . '-' . $extension_name;
+        if (extension_loaded($extension_name)) {
+            $this->say($full_extension_name . ' already installed.');
+            return;
+        }
+
+        $this->say($full_extension_name . ' kuruluyor');
+        $this->phpAfterExtensionInitialized($this->aptInstallPackage($full_extension_name));
+    }
+
+    #endregion
+
+    /**
+     * @param string $package_name
+     * @return bool
+     */
+    private function aptInstallPackage($package_name)
+    {
+        if ($this->aptPackageExists($package_name)) {
+            $this->say('package already exists');
+            return false;
+        }
+
+        $response = $this->_exec("apt install " . $package_name . ' -y');
+        return $response->wasSuccessful();
+    }
+
+    private function aptPackageExists($package_name)
+    {
+        $response = $this->_exec('dpkg-query -W --showformat=\'${Status}\' ' . $package_name);
+        return $response->getOutputData() === 'install ok installed';
+    }
+}
