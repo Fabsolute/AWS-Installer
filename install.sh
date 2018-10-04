@@ -30,7 +30,8 @@ rm installer &&
 wget http://robo.li/robo.phar &&
 chmod +x robo.phar &&
 mv robo.phar /usr/bin/robo &&
-wget http://byfabs.com/install.fabs &&
+git clone https://github.com/Fabsolute/Aws-Installer.git installer &&
+cd installer &&
 chmod +x install.fabs &&
 mv install.fabs /usr/bin/fabs &&
 rm install.sh &&

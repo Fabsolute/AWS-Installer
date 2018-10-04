@@ -1,5 +1,14 @@
 {
+  "require": {
+    "fabstract/ini": "dev-master"
+  },
   "require-dev": {
     "consolidation/robo": "^1.0.0"
-  }
+  },
+  "repositories": [
+    {
+      "type": "vcs",
+      "url": "https://github.com/Fabsolute/Ini-Library-for-PHP.git"
+    }
+  ]
 }

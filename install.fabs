@@ -1,15 +1,178 @@
 #!/usr/bin/env robo
 <?php
 define('MY_PHP_VERSION', '7.2');
+define('COUCH_LOCAL_INI', '/etc/couchdb/local.ini');
+
+include 'vendor/autoload.php';
 
 /**
  * This is project's console commands configuration for Robo task runner.
  *
  * @see http://robo.li/
  */
+
+use \Fabstract\INI\INI;
+use \Fabstract\INI\Line;
+use \Fabstract\INI\Constant\LineTypes;
+
 class RoboFile extends \Robo\Tasks
 {
     use Robo\Task\Base\loadShortcuts;
+
+    #region CouchDB
+
+    public function couchInstall()
+    {
+        $this->say('couchdb kuruluyor');
+        $response = $this->aptInstallPackage('couchdb');
+        if ($response) {
+            $this->makeDir('/data/couchdb');
+
+            chown('/data/couchdb', 'couchdb');
+            $this->couchINISet(
+                'httpd',
+                'bind_address',
+                '0.0.0.0'
+            );
+
+            $this->couchINISet(
+                'httpd',
+                'port',
+                '5984'
+            );
+
+            $this->couchINISet(
+                'couchdb',
+                'database_dir',
+                '/data/couchdb'
+            );
+
+            $this->couchINISet(
+                'couchdb',
+                'view_index_dir',
+                '/data/couchdb'
+            );
+
+            $this->couchRestart();
+        } else {
+            $this->say("Kurulum tamamlanamadi!");
+        }
+    }
+
+    public function couchAuthSet()
+    {
+        $this->say('couch auth ayarlaniyor');
+
+        $this->couchINISet(
+            'httpd',
+            'WWW-Authenticate',
+            'Basic realm="administrator"'
+        );
+
+        $this->couchINISet(
+            'couch_httpd_auth',
+            'require_valid_user',
+            'true'
+        );
+
+        $this->couchRestart();
+    }
+
+    public function couchCompactSet()
+    {
+        $this->say('couch compact ayarlaniyor');
+
+        $this->couchINISet(
+            'daemons',
+            'compaction_daemon',
+            '{couch_compaction_daemon, start_link, []}'
+        );
+
+        $this->couchINISet(
+            'compaction_daemon',
+            'check_interval',
+            '300'
+        );
+
+        $this->couchINISet(
+            'compaction_daemon',
+            'min_file_size',
+            '131072'
+        );
+
+        $this->couchINISet(
+            'compactions',
+            '_default',
+            '[{db_fragmentation, "70%"}, {view_fragmentation, "60%"}]'
+        );
+
+        $this->couchRestart();
+    }
+
+    public function couchLuceneSet()
+    {
+        $this->say('couch lucene ayarlaniyor');
+
+        $this->couchINISet(
+            'httpd_global_handlers',
+            '_fti',
+            '{couch_httpd_proxy, handle_proxy_req, <<"http://127.0.0.1:5985">>}'
+        );
+
+        $this->couchRestart();
+    }
+
+    public function couchRestart()
+    {
+        return $this->serviceRestart('couchdb');
+    }
+
+    private function couchINISet($section_name, $key, $value)
+    {
+        $ini = $this->couchGetINI();
+
+        $setting_line = $ini->getSettingLine($section_name, $key);
+        if ($setting_line === null) {
+            $section_line = $ini->getSectionLine($section_name);
+            if ($section_line === null) {
+                $section_line = Line::create(LineTypes::SECTION, $section_line);
+                $first_line = $ini->getFirstLine();
+                if ($first_line !== null) {
+                    $first_line->insertBefore($section_line);
+                } else {
+                    $ini->setFirstLine($section_line);
+                }
+            }
+
+            $section_line->insertAfter(Line::create(
+                LineTypes::SETTING,
+                $value,
+                $key
+            ));
+        } else {
+            $setting_line->setValue($value);
+        }
+
+        $this->couchINISave($ini);
+    }
+
+    /**
+     * @return INI
+     */
+    private function couchGetINI()
+    {
+        return INI::fromFile(COUCH_LOCAL_INI);
+    }
+
+    /**
+     * @param INI $ini
+     */
+    private function couchINISave($ini)
+    {
+        $ini->write(COUCH_LOCAL_INI);
+    }
+
+    #endregion
 
     #region PHP
 
@@ -21,35 +184,20 @@ class RoboFile extends \Robo\Tasks
         $this->phpInstallExtension("mbstring");
     }
 
+    /**
+     * mysql eklentisini kurar
+     */
     public function phpInstallMysql()
     {
         $this->phpInstallExtension('mysql');
     }
 
+    /**
+     * php restartlar
+     */
     public function phpRestart()
     {
-        $this->say("fpm restartlaniyor");
-        $restart_response = $this->_exec('service php' . MY_PHP_VERSION . '-fpm restart');
-        if ($restart_response->wasSuccessful()) {
-            $this->say("restart basarili");
-            return true;
-        }
-
-        $this->say("restart basarisiz!");
-        return false;
-    }
-
-    /**
-     * @param bool $was_successful
-     */
-    private function phpAfterExtensionInitialized($was_successful)
-    {
-        if ($was_successful) {
-            $this->say("Kurulum basariyla tamamlandi.");
-            $this->phpRestart();
-        } else {
-            $this->say("Kurulum tamamlanamadi!");
-        }
+        return $this->serviceRestart('php' . MY_PHP_VERSION . '-fpm');
     }
 
     private function phpInstallExtension($extension_name)
@@ -61,7 +209,20 @@ class RoboFile extends \Robo\Tasks
         }
 
         $this->say($full_extension_name . ' kuruluyor');
-        $this->phpAfterExtensionInitialized($this->aptInstallPackage($full_extension_name));
+        $this->phpExtensionAfterInstall($this->aptInstallPackage($full_extension_name));
+    }
+
+    /**
+     * @param bool $was_successful
+     */
+    private function phpExtensionAfterInstall($was_successful)
+    {
+        if ($was_successful) {
+            $this->say("Kurulum basariyla tamamlandi.");
+            $this->phpRestart();
+        } else {
+            $this->say("Kurulum tamamlanamadi!");
+        }
     }
 
     #endregion
@@ -85,5 +246,32 @@ class RoboFile extends \Robo\Tasks
     {
         $response = $this->_exec('dpkg-query -W --showformat=\'${Status}\' ' . $package_name);
         return $response->getOutputData() === 'install ok installed';
+    }
+
+    private function serviceRestart($service_name)
+    {
+        $this->say($service_name . ' restartlaniyor');
+        $restart_response = $this->_exec('service ' . $service_name . ' restart');
+        if ($restart_response->wasSuccessful()) {
+            $this->say("restart basarili");
+            return true;
+        }
+
+        $this->say("restart basarisiz!");
+        return false;
+    }
+
+    private function makeDir($dir_name)
+    {
+        $dir_path = explode('/', $dir_name);
+        $path = '';
+        foreach ($dir_path as $direction) {
+            $path .= '/' . $direction;
+            if (file_exists($path)) {
+                continue;
+            }
+
+            mkdir($path);
+        }
     }
 }
