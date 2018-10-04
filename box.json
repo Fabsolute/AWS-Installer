@@ -1,0 +1,10 @@
+{
+  "directories": [
+    "src/",
+    "vendor/"
+  ],
+  "chmod": "0777",
+  "main": "bin/main.php",
+  "output": "install.phar",
+  "stub": true
+}

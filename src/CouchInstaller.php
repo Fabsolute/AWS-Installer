@@ -1,26 +1,15 @@
-#!/usr/bin/env robo
 <?php
-define('MY_PHP_VERSION', '7.2');
-define('COUCH_LOCAL_INI', '/etc/couchdb/local.ini');
 
-include 'vendor/autoload.php';
-
-/**
- * This is project's console commands configuration for Robo task runner.
- *
- * @see http://robo.li/
- */
+namespace Fabstract\Installer;
 
 use \Fabstract\INI\INI;
 use \Fabstract\INI\Line;
 use \Fabstract\INI\Constant\LineTypes;
 
-class RoboFile extends \Robo\Tasks
+define('COUCH_LOCAL_INI', '/etc/couchdb/local.ini');
+
+class CouchInstaller extends BaseInstaller
 {
-    use Robo\Task\Base\loadShortcuts;
-
-    #region CouchDB
-
     public function couchInstall()
     {
         $this->say('couchdb kuruluyor');
@@ -170,108 +159,5 @@ class RoboFile extends \Robo\Tasks
     private function couchINISave($ini)
     {
         $ini->write(COUCH_LOCAL_INI);
-    }
-
-    #endregion
-
-    #region PHP
-
-    /**
-     * mb_string eklentisini kurar
-     */
-    public function phpInstallMB()
-    {
-        $this->phpInstallExtension("mbstring");
-    }
-
-    /**
-     * mysql eklentisini kurar
-     */
-    public function phpInstallMysql()
-    {
-        $this->phpInstallExtension('mysql');
-    }
-
-    /**
-     * php restartlar
-     */
-    public function phpRestart()
-    {
-        return $this->serviceRestart('php' . MY_PHP_VERSION . '-fpm');
-    }
-
-    private function phpInstallExtension($extension_name)
-    {
-        $full_extension_name = 'php' . MY_PHP_VERSION . '-' . $extension_name;
-        if (extension_loaded($extension_name)) {
-            $this->say($full_extension_name . ' already installed.');
-            return;
-        }
-
-        $this->say($full_extension_name . ' kuruluyor');
-        $this->phpExtensionAfterInstall($this->aptInstallPackage($full_extension_name));
-    }
-
-    /**
-     * @param bool $was_successful
-     */
-    private function phpExtensionAfterInstall($was_successful)
-    {
-        if ($was_successful) {
-            $this->say("Kurulum basariyla tamamlandi.");
-            $this->phpRestart();
-        } else {
-            $this->say("Kurulum tamamlanamadi!");
-        }
-    }
-
-    #endregion
-
-    /**
-     * @param string $package_name
-     * @return bool
-     */
-    private function aptInstallPackage($package_name)
-    {
-        if ($this->aptPackageExists($package_name)) {
-            $this->say('package already exists');
-            return false;
-        }
-
-        $response = $this->_exec("apt install " . $package_name . ' -y');
-        return $response->wasSuccessful();
-    }
-
-    private function aptPackageExists($package_name)
-    {
-        $response = $this->_exec('dpkg-query -W --showformat=\'${Status}\' ' . $package_name);
-        return $response->getOutputData() === 'install ok installed';
-    }
-
-    private function serviceRestart($service_name)
-    {
-        $this->say($service_name . ' restartlaniyor');
-        $restart_response = $this->_exec('service ' . $service_name . ' restart');
-        if ($restart_response->wasSuccessful()) {
-            $this->say("restart basarili");
-            return true;
-        }
-
-        $this->say("restart basarisiz!");
-        return false;
-    }
-
-    private function makeDir($dir_name)
-    {
-        $dir_path = explode('/', $dir_name);
-        $path = '';
-        foreach ($dir_path as $direction) {
-            $path .= '/' . $direction;
-            if (file_exists($path)) {
-                continue;
-            }
-
-            mkdir($path);
-        }
     }
 }
