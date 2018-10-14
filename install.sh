@@ -1,22 +1,22 @@
 #!/usr/bin/env bash
+if [[ $EUID -ne 0 ]]; then
+   echo "This script must be run as root"
+   exit 1
+fi
 
 function package_exists(){
-    PKG_OK=$(dpkg-query -W --showformat='${Status}\n' $1|grep "install ok installed")
-    if [ "" == "$PKG_OK" ]; then
-       return 1
-    fi
-    return 0
+  return dpkg -l "$1" &> /dev/null
 }
 
 function install_package_if_not_exists(){
-    if [ package_exists $1 == 0 ]; then
-        apt install $1 -y
+    if ! package_exists "$1"; then
+        apt install "$1" -y
     fi
 }
 
 echo "LC_ALL=en_US.UTF-8" >> /etc/default/locale &&
-if [ package_exists "php7.2-fpm" == 0 ]; then
-    add-apt-repository ppa:ondrej/php -y &&
+if ! package_exists "php7.2-fpm"; then
+    LC_ALL=C.UTF-8 add-apt-repository ppa:ondrej/php -y &&
     apt update &&
     install_package_if_not_exists "php7.2-fpm"
 fi &&
@@ -30,8 +30,12 @@ rm installer &&
 wget http://robo.li/robo.phar &&
 chmod +x robo.phar &&
 mv robo.phar /usr/bin/robo &&
-wget http://byfabs.com/install.phar &&
+apt install git &&
+git clone https://github.com/Fabsolute/Aws-Installer.git installer &&
+cd installer &&
 chmod +x install.phar &&
 mv install.phar /usr/bin/fabs &&
+cd .. &&
 rm install.sh &&
+rm -r installer &&
 fabs
