@@ -1,10 +1,10 @@
 {
     "_readme": [
         "This file locks the dependencies of your project to a known state",
-        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#composer-lock-the-lock-file",
+        "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "668d01b6914879e4153693df24339d74",
+    "content-hash": "26cbaae52505dc67d1d8cf843d513613",
     "packages": [
         {
             "name": "consolidation/annotated-command",
@@ -799,6 +799,64 @@
                 "psr-3"
             ],
             "time": "2016-10-10T12:19:37+00:00"
+        },
+        {
+            "name": "romanpitak/nginx-config-processor",
+            "version": "v0.2.1",
+            "source": {
+                "type": "git",
+                "url": "https://github.com/romanpitak/Nginx-Config-Processor.git",
+                "reference": "0dfcbbda696c7baeed8f955e4831696d90e56758"
+            },
+            "dist": {
+                "type": "zip",
+                "url": "https://api.github.com/repos/romanpitak/Nginx-Config-Processor/zipball/0dfcbbda696c7baeed8f955e4831696d90e56758",
+                "reference": "0dfcbbda696c7baeed8f955e4831696d90e56758",
+                "shasum": ""
+            },
+            "require": {
+                "php": ">=5.3.3"
+            },
+            "require-dev": {
+                "codacy/coverage": "dev-master",
+                "codeclimate/php-test-reporter": "dev-master"
+            },
+            "type": "library",
+            "autoload": {
+                "psr-4": {
+                    "RomanPitak\\Nginx\\Config\\": "src/"
+                }
+            },
+            "notification-url": "https://packagist.org/downloads/",
+            "license": [
+                "MIT"
+            ],
+            "authors": [
+                {
+                    "name": "Roman Piták",
+                    "email": "roman@pitak.net",
+                    "homepage": "http://pitak.net",
+                    "role": "Developer"
+                }
+            ],
+            "description": "Nginx configuration files processor.",
+            "homepage": "https://github.com/romanpitak/Nginx-Config-Processor",
+            "keywords": [
+                "conf",
+                "conf file",
+                "config",
+                "config file",
+                "configuration",
+                "configuration file",
+                "create",
+                "creator",
+                "manager",
+                "nginx",
+                "parser",
+                "php",
+                "processor"
+            ],
+            "time": "2016-01-31T19:44:23+00:00"
         },
         {
             "name": "symfony/console",

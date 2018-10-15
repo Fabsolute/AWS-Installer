@@ -3,6 +3,7 @@
 namespace Fabstract\Installer;
 
 define('MY_PHP_VERSION', '7.2');
+
 class PHPInstaller extends BaseInstaller
 {
     /**
@@ -29,6 +30,9 @@ class PHPInstaller extends BaseInstaller
         return $this->serviceRestart('php' . MY_PHP_VERSION . '-fpm');
     }
 
+    /**
+     * @param string $extension_name
+     */
     private function phpInstallExtension($extension_name)
     {
         $full_extension_name = 'php' . MY_PHP_VERSION . '-' . $extension_name;
@@ -53,5 +57,4 @@ class PHPInstaller extends BaseInstaller
             $this->say("Kurulum tamamlanamadi!");
         }
     }
-
 }

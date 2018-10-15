@@ -1,7 +1,8 @@
 {
   "require": {
     "fabstract/ini": "dev-master",
-    "consolidation/robo": "^1.0.0"
+    "consolidation/robo": "^1.0.0",
+    "romanpitak/nginx-config-processor": "^0.2.1"
   },
   "autoload": {
     "psr-4": {
